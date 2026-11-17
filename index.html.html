@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cutting mat — обои в масштабе 1:1</title>
+<meta name="description" content="Обои в виде катинг-мата с реальной сеткой: 1 см на картинке = 1 см на экране. Выбери устройство, цвет, окошко под тег и скачай.">
+<style>
+  :root{--bg:#111214;--panel:#1a1c1f;--line:#2a2d31;--txt:#ececec;--dim:#9aa0a6;--acc:#e8873a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif}
+  header{padding:22px 18px 6px;max-width:1180px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:.2px}
+  header p{margin:0;color:var(--dim)}
+  main{max-width:1180px;margin:0 auto;padding:12px 18px 60px;display:grid;gap:18px;grid-template-columns:1fr}
+  @media(min-width:900px){main{grid-template-columns:minmax(0,1fr) 380px;align-items:start}.preview{position:sticky;top:12px}}
+  .preview{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .stage{display:flex;justify-content:center;align-items:center;background:#0b0c0d;border-radius:10px;padding:10px;min-height:200px}
+  canvas{max-width:100%;max-height:70vh;height:auto;width:auto;display:block;border-radius:6px;box-shadow:0 6px 30px #000a}
+  .info{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--dim);font-size:13px;margin:10px 2px 0}
+  .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button,.btn{background:var(--acc);color:#1a1006;border:0;border-radius:10px;padding:11px 16px;font:600 15px inherit;font-family:inherit;cursor:pointer}
+  button.sec{background:#2a2d31;color:var(--txt)}
+  button:active{transform:translateY(1px)}
+  .controls{display:grid;gap:12px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+  section h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);font-weight:600}
+  label{display:flex;align-items:center;gap:8px;margin:7px 0}
+  .row{display:grid;grid-template-columns:110px 1fr 44px;gap:8px;align-items:center;margin:7px 0}
+  .row span:last-child{color:var(--dim);text-align:right;font-variant-numeric:tabular-nums}
+  select,input[type=text],input[type=number]{width:100%;background:#0f1012;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:inherit}
+  input[type=range]{width:100%;accent-color:var(--acc)}
+  input[type=checkbox],input[type=radio]{accent-color:var(--acc);width:17px;height:17px}
+  .sw{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+  .sw button{width:36px;height:36px;border-radius:50%;padding:0;border:2px solid transparent;box-shadow:inset 0 0 0 1px #0006}
+  .sw button.on{border-color:#fff}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .hint{color:var(--dim);font-size:12.5px;margin:6px 0 0}
+  .hide{display:none!important}
+  input[type=color]{width:44px;height:36px;border:0;background:none;padding:0}
+  footer{max-width:1180px;margin:0 auto;padding:0 18px 40px;color:var(--dim);font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Cutting mat — обои в реальном масштабе</h1>
+  <p>1 см на картинке = 1 см на твоём экране. Выбери устройство, цвет, окошко под тег и скачай PNG.</p>
+</header>
+
+<main>
+  <div class="preview">
+    <div class="stage"><canvas id="cv"></canvas></div>
+    <div class="info"><span id="dims"></span><span id="scale"></span></div>
+    <div class="btns">
+      <button id="dl">Скачать PNG</button>
+      <button id="share" class="sec hide">Сохранить / поделиться</button>
+      <button id="link" class="sec">Скопировать ссылку на настройки</button>
+    </div>
+    <p class="hint">Проверка масштаба: приложи линейку к экрану. Для iPhone поставь обои без «увеличения» и без сдвига при выборе.</p>
+  </div>
+
+  <div class="controls">
+    <section>
+      <h2>Устройство</h2>
+      <select id="device"></select>
+      <div id="customBox" class="hide" style="margin-top:8px">
+        <div class="two">
+          <input type="number" id="cw" placeholder="Ширина px" min="320" max="7680">
+          <input type="number" id="ch" placeholder="Высота px" min="320" max="7680">
+        </div>
+        <div class="row"><span>Диагональ, "</span><input type="range" id="cd" min="5" max="49" step="0.1"><span id="cdv"></span></div>
+      </div>
+      <label id="rotBox" class="hide"><input type="checkbox" id="rot"> Повернуть (портрет / ландшафт)</label>
+      <div id="screenBox" class="hide">
+        <label><input type="radio" name="scr" value="lock" checked> Экран блокировки</label>
+        <label><input type="radio" name="scr" value="home"> Домашний экран (сетка заканчивается над доком)</label>
+        <label id="panelBox"><input type="checkbox" id="panel" checked> Чистое место под дату и часы</label>
+      </div>
+      <details id="adv" class="hide" style="margin-top:10px">
+        <summary style="cursor:pointer;color:var(--dim)">Расширенные</summary>
+        <div style="margin-top:8px">
+          <div class="row"><span>Система</span>
+            <select id="os"><option value="auto">как у устройства</option><option value="win">Windows</option><option value="mac">macOS</option><option value="none">без панелей</option></select><span></span></div>
+          <div id="winBox">
+            <label><input type="checkbox" id="useBottomW"> Отступ под панель задач</label>
+            <div class="row"><span>Масштаб Windows</span>
+              <select id="winScale"><option value="100">100%</option><option value="125">125%</option><option value="150">150%</option><option value="200">200%</option></select><span></span></div>
+          </div>
+          <div id="macBox">
+            <label><input type="checkbox" id="useTopM"> Отступ под строку меню</label>
+            <label><input type="checkbox" id="useBottomM"> Отступ под Dock</label>
+            <div class="row"><span>Размер Dock</span>
+              <select id="dockSize"><option value="s">маленький</option><option value="m">средний</option><option value="l">большой</option></select><span></span></div>
+          </div>
+        </div>
+      </details>
+      <p class="hint">Размеры экранов и ppi — по паспортным данным, возможна погрешность. Для точной подгонки выбери «Свой размер».</p>
+    </section>
+
+    <section>
+      <h2>Цвет</h2>
+      <div class="sw" id="sw"></div>
+      <label><input type="checkbox" id="grad" checked> Градиент и виньетка</label>
+      <label>Свой цвет мата <input type="color" id="ccol" value="#ce5c1a"></label>
+      <label>Цвет линий <select id="lmode" style="width:auto"><option value="auto">как у мата</option><option value="custom">свой</option></select>
+        <input type="color" id="lcol" value="#f6e0b8" class="hide"></label>
+    </section>
+
+    <section>
+      <h2>Разметка</h2>
+      <label><input type="checkbox" id="rulers" checked> Линейки и цифры</label>
+      <label><input type="checkbox" id="angles" checked> Углы 30° / 60°</label>
+      <label><input type="checkbox" id="dots" checked> Точки в центрах клеток</label>
+      <label><input type="checkbox" id="thick" checked> Каждая 10-я линия толще</label>
+    </section>
+
+    <section id="winSection">
+      <h2>Окошко</h2>
+      <label><input type="checkbox" id="tag"> Показать окошко</label>
+      <div id="tagBox">
+        <div class="row"><span>Угол</span>
+          <select id="anchor"><option value="br">справа внизу</option><option value="bl">слева внизу</option><option value="tr">справа вверху</option><option value="tl">слева вверху</option></select><span></span></div>
+        <div class="row"><span>Ширина, см</span><input type="range" id="tw" min="1" max="20" step="1"><span id="twv"></span></div>
+        <div class="row"><span>Высота, см</span><input type="range" id="th" min="1" max="12" step="1"><span id="thv"></span></div>
+        <div class="row"><span>Отступ по X</span><input type="range" id="ox" min="0" max="30" step="1"><span id="oxv"></span></div>
+        <div class="row"><span>Отступ по Y</span><input type="range" id="oy" min="0" max="20" step="1"><span id="oyv"></span></div>
+        <label style="margin-top:12px">Своя картинка (PNG / SVG / JPG): <input type="file" id="file" accept="image/*" style="max-width:100%"></label>
+        <label><input type="checkbox" id="recolor" checked> Перекрасить под цвет линий</label>
+        <button class="sec" id="clearFile" style="padding:7px 12px;font-size:13px">Убрать картинку</button>
+        <div style="margin-top:10px"><input type="text" id="txt" maxlength="24" placeholder="…или текст"></div>
+        <p class="hint">Для картинок: чёрные линии на белом или прозрачном фоне перекрасятся в цвет разметки. Файл остаётся на твоём устройстве.</p>
+      </div>
+    </section>
+  </div>
+</main>
+<footer>Всё считается в браузере, ничего не отправляется на сервер.</footer>
+
+<script>
+"use strict";
+/* ---------- данные ---------- */
+const DEVICES = [
+  {id:"ip15pm", name:'iPhone 15 Pro Max', w:1290,h:2796,ppi:460,type:"phone"},
+  {id:"ip16pm", name:'iPhone 16 Pro Max', w:1320,h:2868,ppi:460,type:"phone"},
+  {id:"ip16p",  name:'iPhone 16 Pro',     w:1206,h:2622,ppi:460,type:"phone"},
+  {id:"ip15",   name:'iPhone 15 / 15 Pro',w:1179,h:2556,ppi:460,type:"phone"},
+  {id:"ipadpro",name:'iPad Pro 11" (M4)', w:2420,h:1668,ppi:264,type:"tablet"},
+  {id:"ipadair",name:'iPad Air 11"',      w:2360,h:1640,ppi:264,type:"tablet"},
+  {id:"mba13",  name:'MacBook Air 13"',   w:2560,h:1664,ppi:224,type:"pc"},
+  {id:"mbp14",  name:'MacBook Pro 14"',   w:3024,h:1964,ppi:254,type:"pc"},
+  {id:"m4k",    name:'Монитор 27" 4K',    w:3840,h:2160,ppi:163,type:"pc"},
+  {id:"m1440",  name:'Монитор 27" 1440p', w:2560,h:1440,ppi:109,type:"pc"},
+  {id:"m1080",  name:'Монитор 24" 1080p', w:1920,h:1080,ppi:92, type:"pc"},
+  {id:"custom", name:'Свой размер…',      w:3440,h:1440,ppi:110,type:"pc"}
+];
+const COLORS = {
+  orange:{base:[206,92,26], glow:[228,142,62], edge:[180,74,18], line:[246,224,184]},
+  blue:  {base:[26,84,158], glow:[62,134,204], edge:[14,54,118], line:[222,238,252]},
+  black: {base:[16,16,16],  glow:[46,46,46],   edge:[8,8,8],     line:[170,170,170]},
+  green: {base:[34,110,72], glow:[70,160,110], edge:[20,76,48],  line:[222,242,226]},
+  red:   {base:[170,38,34], glow:[210,84,70],  edge:[122,24,22], line:[250,222,214]},
+  gray:  {base:[84,88,94],  glow:[122,126,132],edge:[56,60,64],  line:[232,234,236]}
+};
+/* Окошко (под картинку/текст) пока отключено: код оставлен, но не используется.
+   Чтобы вернуть — поставь true. */
+const ENABLE_WINDOW = false;
+
+const DEF = {dev:"ip15pm",cw:3440,ch:1440,cd:34,rot:false,scr:"lock",panel:true,
+  col:"orange",ccol:"#ce5c1a",lmode:"auto",lcol:"#f6e0b8",
+  grad:true,rulers:true,angles:true,dots:true,thick:true,
+  os:"auto",useBottomW:true,winScale:"100",useTopM:true,useBottomM:true,dockSize:"m",tag:false,anchor:"br",tw:null,th:null,ox:0,oy:null,recolor:true,txt:""};
+
+/* ---------- состояние ---------- */
+const S = Object.assign({}, DEF);
+try{ const h=location.hash.slice(1); if(h){ Object.assign(S, JSON.parse(decodeURIComponent(atob(h)))); } }catch(e){}
+let tagImg = null;
+
+const $ = id => document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const mix=(a,b,t)=>a.map((v,i)=>Math.round(v+(b[i]-v)*t));
+const hex2rgb=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
+const rgb2hex=c=>"#"+c.map(v=>v.toString(16).padStart(2,"0")).join("");
+const rgba=(c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+function device(){ return DEVICES.find(d=>d.id===S.dev) || DEVICES[0]; }
+function geom(){
+  const d = device();
+  let W=d.w,H=d.h,ppi=d.ppi;
+  if(d.id==="custom"){ W=+S.cw; H=+S.ch; ppi=Math.hypot(W,H)/S.cd; }
+  if(d.type!=="phone" && S.rot) [W,H]=[H,W];
+  return {W:Math.round(W),H:Math.round(H),ppi,type:d.type,name:d.name};
+}
+const PTS_W={mba13:1470,mbp14:1512};
+function osOf(){
+  const d=device();
+  if(d.type==="phone") return "ios";
+  if(d.type==="tablet") return "ipad";
+  if(S.os && S.os!=="auto") return S.os;
+  return /MacBook/.test(d.name) ? "mac" : "win";
+}
+/* [верх, низ] — сколько пикселей занимают системные панели */
+function reserves(g){
+  const os=osOf(), lock=S.scr==="lock";
+  if(os==="win") return [0, S.useBottomW ? Math.round(48*(+S.winScale||100)/100) : 0];
+  if(os==="mac"){
+    const ptpx=g.ppi/127;                       // примерно пикселей в одном «поинте» macOS
+    const dock={s:60,m:80,l:100}[S.dockSize]||80;
+    return [S.useTopM ? Math.round(37*ptpx) : 0, S.useBottomM ? Math.round(dock*ptpx) : 0];
+  }
+  if(os==="ipad") return [70, lock ? 30 : 250];
+  return [0,0];
+}
+function palette(){
+  if(S.col==="custom"){
+    const b=hex2rgb(S.ccol);
+    return {base:b, glow:mix(b,[255,255,255],.2), edge:mix(b,[0,0,0],.14), line:mix(b,[255,255,255],.82)};
+  }
+  return COLORS[S.col];
+}
+
+/* ---------- рисование ---------- */
+const cv=$("cv"), ctx=cv.getContext("2d");
+function render(){
+  const g=geom(), {W,H}=g, u=g.ppi/2.54;
+  cv.width=W; cv.height=H;
+  const pal=palette();
+  const lineC = S.lmode==="custom" ? hex2rgb(S.lcol) : pal.line;
+
+  /* фон: радиальный градиент + виньетка + зерно */
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle=rgba(pal.base,1); ctx.fillRect(0,0,W,H);
+  if(S.grad){
+  ctx.save(); ctx.translate(W/2,H/2); ctx.scale(W*0.62,H*0.62);
+  let gr=ctx.createRadialGradient(0,0,0,0,0,1);
+  gr.addColorStop(0,rgba(pal.glow,1)); gr.addColorStop(1,rgba(pal.base,1));
+  ctx.fillStyle=gr; ctx.fillRect(-2,-2,4,4);
+  gr=ctx.createRadialGradient(0,0,0.55,0,0,1.22);
+  gr.addColorStop(0,rgba(pal.edge,0)); gr.addColorStop(1,rgba(pal.edge,.75));
+  ctx.fillStyle=gr; ctx.fillRect(-2,-2,4,4);
+  ctx.restore();
+  }
+  grain(W,H);
+
+  /* геометрия мата */
+  const font=clamp(0.15*u,20,30), rw=font*2.9, fi=font*0.9, mg=rw+fi;
+  const phone=g.type==="phone", lock=S.scr==="lock";
+  const sn=(v,lw)=>lw%2===0?Math.round(v):Math.floor(v)+.5;   // привязка к пикселям, чтобы линии были одинаково яркими
+  let cols=Math.floor((W-2*mg)/u+0.05), gx0=(W-cols*u)/2, rows, gy0;
+  if(phone){
+    gy0=H*0.0894; const fb=lock? H*0.9608 : H*0.831;
+    rows=Math.floor((fb-rw-gy0)/u+0.05);
+  }else{
+    const [rt,rb]=reserves(g), avail=H-2*mg-rt-rb;
+    rows=Math.floor(avail/u+0.05); gy0=mg+rt+(avail-rows*u)/2;
+  }
+  cols=Math.max(cols,2); rows=Math.max(rows,2);
+  const gx1=gx0+cols*u, gy1=gy0+rows*u;
+  window._dbg={gx0,gy0,u,cols,rows};
+  const X=j=>gx0+j*u, Y=k=>gy0+k*u;
+
+  /* слой разметки */
+  const mk=document.createElement("canvas"); mk.width=W; mk.height=H;
+  const m=mk.getContext("2d");
+  m.lineCap="butt";
+  const lwN=2, lwT=S.thick?3:2;
+  for(let j=0;j<=cols;j++){ const t=j%10===0&&S.thick, lw=t?lwT:lwN, x=sn(X(j),lw); m.strokeStyle=rgba(lineC,t?.8:.55); m.lineWidth=lw; m.beginPath(); m.moveTo(x,Math.round(gy0)); m.lineTo(x,Math.round(gy1)); m.stroke(); }
+  for(let k=0;k<=rows;k++){ const t=k%10===0&&S.thick, lw=t?lwT:lwN, y=sn(Y(k),lw); m.strokeStyle=rgba(lineC,t?.8:.55); m.lineWidth=lw; m.beginPath(); m.moveTo(Math.round(gx0),y); m.lineTo(Math.round(gx1),y); m.stroke(); }
+  if(S.dots){
+    const r=clamp(u*0.014,1.4,2.2); m.fillStyle=rgba(lineC,.45);
+    for(let j=0;j<cols;j++)for(let k=0;k<rows;k++){ m.beginPath(); m.arc(Math.round(X(j+.5)),Math.round(Y(k+.5)),r,0,7); m.fill(); }
+  }
+  const cx=(gx0+gx1)/2, cy=(gy0+gy1)/2, gw=gx1-gx0;
+  if(S.angles){
+    m.save(); m.beginPath(); m.rect(gx0,gy0,gx1-gx0,gy1-gy0); m.clip();
+    m.strokeStyle=rgba(lineC,.5); m.lineWidth=2;
+    for(const a of [60,30]){ const t=Math.tan(a*Math.PI/180);
+      for(const sg of [1,-1]){ m.beginPath(); m.moveTo(cx-6000,cy+sg*t*6000); m.lineTo(cx+6000,cy-sg*t*6000); m.stroke(); } }
+    m.restore();
+  }
+  if(S.rulers){
+    const mm=u/10, tl=font;
+    m.strokeStyle=rgba(lineC,.7); m.lineWidth=1;
+    m.beginPath();
+    for(let j=0;j<=cols*10;j++){ const x=sn(gx0+j*mm,1), l=j%10===0?tl:j%5===0?tl*.7:tl*.4; m.moveTo(x,gy0-l); m.lineTo(x,gy0); m.moveTo(x,gy1); m.lineTo(x,gy1+l); }
+    for(let k=0;k<=rows*10;k++){ const y=sn(gy0+k*mm,1), l=k%10===0?tl:k%5===0?tl*.7:tl*.4; m.moveTo(gx0-l,y); m.lineTo(gx0,y); m.moveTo(gx1,y); m.lineTo(gx1+l,y); }
+    m.stroke();
+    m.fillStyle=rgba(lineC,.9); m.font=`500 ${font}px Inter,-apple-system,"Segoe UI",Roboto,sans-serif`;
+    m.textAlign="center"; m.textBaseline="middle";
+    const no=font*2.0;
+    if(u>=28){
+      for(let j=1;j<=cols;j++){ m.fillText(j,X(j),gy0-no); m.fillText(j,X(j),gy1+no); }
+      for(let k=1;k<=rows;k++){ m.fillText(k,gx0-no,Y(k)); m.fillText(k,gx1+no,Y(k)); }
+    }
+    m.font=`500 ${font*.85}px Inter,-apple-system,"Segoe UI",Roboto,sans-serif`;
+    m.textAlign="left"; m.textBaseline="top"; m.fillText("CM",gx0-rw+font*.6,gy0-rw+font*.55);
+    m.textBaseline="bottom"; m.fillText("CM",gx0-rw+font*.6,gy1+rw-font*.55);
+  }
+  /* рамка мата */
+  m.strokeStyle=rgba(lineC,.55); m.lineWidth=2;
+  rr(m,gx0-rw,gy0-rw,gx1-gx0+2*rw,gy1-gy0+2*rw,font*.9); m.stroke();
+
+  /* окна */
+  const erase=(x,y,w,h)=>{ m.save(); m.globalCompositeOperation="destination-out"; m.fillStyle="#000"; m.fillRect(x,y,w,h); m.restore(); };
+  let panelOn = phone && lock && S.panel;
+  let paths=[];
+  if(panelOn){
+    const bh=2.16, gp=1.12, c2=cols/2;
+    erase(X(0),Y(0),cols*u,bh*u);
+    erase(X(c2-gp-.05),gy0-rw+3,(2*gp+.1)*u,rw-3+2);   // линейка под датой
+    paths.push([[c2-gp,0],[0,0],[0,bh],[cols,bh],[cols,0],[c2+gp,0]]);
+  }
+  /* окошко под тег */
+  let tagRect=null;
+  if(ENABLE_WINDOW && S.tag){
+    const tw=clamp(S.tw??defTag(g).tw,1,cols), th=clamp(S.th??defTag(g).th,1,rows);
+    const oy0=S.oy??defTag(g).oy;
+    let tx=S.anchor[1]==="r" ? cols-tw-S.ox : S.ox;
+    let ty=S.anchor[0]==="b" ? rows-th-oy0 : oy0;
+    tx=clamp(tx,0,cols-tw); ty=clamp(ty,0,rows-th);
+    tagRect=[X(tx),Y(ty),tw*u,th*u];
+    erase(...tagRect);
+  }
+  /* подписи углов (после окон, с «разрывом» под текстом) */
+  if(S.angles){
+    const hh=(gy1-gy0)/2, t60=Math.tan(Math.PI/3), t30=Math.tan(Math.PI/6);
+    const dx=Math.max(.5*u,Math.min(.94*u>4.7*u?0:Math.max(.94*u,Math.min(4.7*u,.16*gw)),(hh-1.5*u)/t60));   // 60°: метка остаётся внутри сетки
+    const dx2=Math.min(.27*gw,(hh-1.5*u)/t30);
+    const labs=[["60°",cx+dx,cy-Math.tan(Math.PI/3)*dx],["30°",cx+dx2,cy+Math.tan(Math.PI/6)*dx2]];
+    const fs=font*1.1; m.font=`500 ${fs}px Inter,-apple-system,"Segoe UI",Roboto,sans-serif`; m.textAlign="center"; m.textBaseline="middle";
+    for(const [t,x,y] of labs){ const w=m.measureText(t).width; erase(x-w/2-8,y-fs*.65,w+16,fs*1.3); m.fillStyle=rgba(lineC,.8); m.fillText(t,x,y); }
+  }
+  /* обводка окон */
+  m.strokeStyle=rgba(lineC,.85); m.lineWidth=4; m.lineJoin="miter"; m.lineCap="square";
+  for(const p of paths){ m.beginPath(); p.forEach(([x,y],i)=>{ i?m.lineTo(X(x),Y(y)):m.moveTo(X(x),Y(y)); }); m.stroke(); }
+  if(tagRect){ m.lineCap="butt"; m.strokeRect(tagRect[0],tagRect[1],tagRect[2],tagRect[3]); }
+
+  ctx.drawImage(mk,0,0);
+  if(tagRect) drawTag(tagRect,lineC);
+
+  $("dims").textContent=`${W}×${H} px · ${g.name}`;
+  $("scale").textContent=`1 см = ${u.toFixed(1)} px · сетка ${cols}×${rows} см`;
+}
+function defTag(g){
+  const ph=g.type==="phone", tab=g.type==="tablet";
+  return ph? {tw:2,th:1,oy:1} : tab? {tw:5,th:3,oy:0} : {tw:8,th:4,oy:0};
+}
+function rr(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+
+let grainTile=null;
+function grain(W,H){
+  if(!grainTile){
+    const t=document.createElement("canvas"); t.width=t.height=256; const c=t.getContext("2d");
+    const d=c.createImageData(256,256);
+    for(let i=0;i<d.data.length;i+=4){ const v=Math.random()*255|0; d.data[i]=d.data[i+1]=d.data[i+2]=v; d.data[i+3]=14; }
+    c.putImageData(d,0,0); grainTile=t;
+  }
+  ctx.save(); ctx.globalCompositeOperation="overlay"; ctx.fillStyle=ctx.createPattern(grainTile,"repeat"); ctx.fillRect(0,0,W,H); ctx.restore();
+}
+
+/* ---------- тег ---------- */
+function drawTag([x,y,w,h],lineC){
+  const pad=Math.min(w,h)*0.12, iw=Math.max(2,Math.round(w-2*pad)), ih=Math.max(2,Math.round(h-2*pad));
+  const t=document.createElement("canvas"); t.width=iw; t.height=ih; const c=t.getContext("2d");
+  let any=false;
+  if(tagImg){
+    const k=Math.min(iw/tagImg.width, ih/tagImg.height), dw=tagImg.width*k, dh=tagImg.height*k;
+    c.drawImage(tagImg,(iw-dw)/2,(ih-dh)/2,dw,dh); any=true;
+    if(S.recolor) recolor(c,iw,ih,lineC);
+  }else if(S.txt){
+    let fs=ih*.7; const face='600 %px Inter,-apple-system,"Segoe UI",Roboto,sans-serif';
+    c.font=face.replace("%",fs); const mw=c.measureText(S.txt).width; if(mw>iw) fs*=iw/mw;
+    c.font=face.replace("%",fs); c.textAlign="center"; c.textBaseline="middle"; c.fillStyle=rgba(lineC,.95); c.fillText(S.txt,iw/2,ih/2+fs*.04); any=true;
+  }
+  if(any) ctx.drawImage(t,x+pad,y+pad);
+}
+function recolor(c,w,h,col){
+  const d=c.getImageData(0,0,w,h), p=d.data; let opaque=true;
+  for(let i=3;i<p.length;i+=4) if(p[i]<250){ opaque=false; break; }
+  for(let i=0;i<p.length;i+=4){
+    let a;
+    if(opaque){ const l=(0.299*p[i]+0.587*p[i+1]+0.114*p[i+2])/255; a=clamp((0.85-l)/0.6,0,1); }
+    else a=p[i+3]/255;
+    p[i]=col[0]; p[i+1]=col[1]; p[i+2]=col[2]; p[i+3]=Math.round(a*255*0.95);
+  }
+  c.putImageData(d,0,0);
+}
+
+/* ---------- UI ---------- */
+function build(){
+  $("device").innerHTML=DEVICES.map(d=>`<option value="${d.id}">${d.name}${d.id==="custom"?"":` · ${d.w}×${d.h}`}</option>`).join("");
+  $("sw").innerHTML=Object.keys(COLORS).map(k=>`<button data-c="${k}" title="${k}" style="background:${rgb2hex(COLORS[k].glow)}"></button>`).join("");
+  $("sw").addEventListener("click",e=>{ const b=e.target.closest("button"); if(!b) return; S.col=b.dataset.c; sync(); draw(); });
+}
+function sync(){
+  const g=geom(), d=device(), tag=defTag(g);
+  $("device").value=S.dev;
+  $("customBox").classList.toggle("hide",d.id!=="custom");
+  $("cw").value=S.cw; $("ch").value=S.ch; $("cd").value=S.cd; $("cdv").textContent=S.cd+'"';
+  $("rotBox").classList.toggle("hide",d.type==="phone"); $("rot").checked=S.rot;
+  const os=osOf();
+  $("screenBox").classList.toggle("hide",d.type!=="phone"&&d.type!=="tablet");
+  $("panelBox").classList.toggle("hide",d.type!=="phone"||S.scr!=="lock");
+  $("adv").classList.toggle("hide",d.type==="phone"||d.type==="tablet");
+  $("os").value=S.os||"auto";
+  $("winBox").classList.toggle("hide",os!=="win"); $("macBox").classList.toggle("hide",os!=="mac");
+  $("useBottomW").checked=S.useBottomW; $("winScale").value=S.winScale;
+  $("useTopM").checked=S.useTopM; $("useBottomM").checked=S.useBottomM; $("dockSize").value=S.dockSize;
+  document.querySelectorAll('input[name=scr]').forEach(r=>r.checked=r.value===S.scr);
+  $("panel").checked=S.panel;
+  document.querySelectorAll("#sw button").forEach(b=>b.classList.toggle("on",b.dataset.c===S.col));
+  $("ccol").value=S.col==="custom"?S.ccol:rgb2hex(COLORS[S.col].base);
+  $("lmode").value=S.lmode; $("lcol").classList.toggle("hide",S.lmode!=="custom"); $("lcol").value=S.lcol;
+  for(const k of ["grad","rulers","angles","dots","thick","tag","recolor"]) $(k).checked=S[k];
+  $("tagBox").classList.toggle("hide",!S.tag);
+  $("winSection").classList.toggle("hide",!ENABLE_WINDOW);
+  $("anchor").value=S.anchor;
+  const set=(id,val)=>{ $(id).value=val; $(id+"v").textContent=val; };
+  set("tw",S.tw??tag.tw); set("th",S.th??tag.th); set("ox",S.ox); set("oy",S.oy??tag.oy);
+  $("txt").value=S.txt;
+}
+let raf=0; function draw(){ cancelAnimationFrame(raf); raf=requestAnimationFrame(()=>{ render(); try{ history.replaceState(null,"","#"+btoa(encodeURIComponent(JSON.stringify(S)))); }catch(e){} }); }
+function bind(){
+  $("device").onchange=e=>{ S.dev=e.target.value; S.tw=S.th=S.oy=null; S.os="auto"; sync(); draw(); };
+  for(const id of ["cw","ch"]) $(id).oninput=e=>{ S[id]=clamp(+e.target.value||0,320,7680); draw(); };
+  $("cd").oninput=e=>{ S.cd=+e.target.value; $("cdv").textContent=S.cd+'"'; draw(); };
+  $("os").onchange=e=>{ S.os=e.target.value; sync(); draw(); };
+  for(const k of ["useBottomW","useTopM","useBottomM"]) $(k).onchange=e=>{ S[k]=e.target.checked; draw(); };
+  for(const k of ["winScale","dockSize"]) $(k).onchange=e=>{ S[k]=e.target.value; draw(); };
+  $("rot").onchange=e=>{ S.rot=e.target.checked; S.tw=S.th=S.oy=null; sync(); draw(); };
+  document.querySelectorAll('input[name=scr]').forEach(r=>r.onchange=()=>{ S.scr=r.value; sync(); draw(); });
+  $("panel").onchange=e=>{ S.panel=e.target.checked; draw(); };
+  $("ccol").oninput=e=>{ S.col="custom"; S.ccol=e.target.value; sync(); draw(); };
+  $("lmode").onchange=e=>{ S.lmode=e.target.value; sync(); draw(); };
+  $("lcol").oninput=e=>{ S.lcol=e.target.value; draw(); };
+  for(const k of ["grad","rulers","angles","dots","thick","tag","recolor"]) $(k).onchange=e=>{ S[k]=e.target.checked; sync(); draw(); };
+  $("anchor").onchange=e=>{ S.anchor=e.target.value; draw(); };
+  for(const [id,key] of [["tw","tw"],["th","th"],["ox","ox"],["oy","oy"]]) $(id).oninput=e=>{ S[key]=+e.target.value; $(id+"v").textContent=e.target.value; draw(); };
+  $("txt").oninput=e=>{ S.txt=e.target.value; draw(); };
+  $("file").onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const url=URL.createObjectURL(f), im=new Image();
+    im.onload=()=>{ tagImg=im; draw(); }; im.onerror=()=>alert("Не удалось открыть файл"); im.src=url;
+  };
+  $("clearFile").onclick=()=>{ tagImg=null; $("file").value=""; draw(); };
+  $("dl").onclick=()=>blob(b=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=`cutting-mat-${cv.width}x${cv.height}.png`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); });
+  $("share").onclick=()=>blob(async b=>{ const f=new File([b],`cutting-mat-${cv.width}x${cv.height}.png`,{type:"image/png"}); try{ await navigator.share({files:[f]}); }catch(e){} });
+  $("link").onclick=async()=>{ try{ await navigator.clipboard.writeText(location.href); $("link").textContent="Скопировано ✓"; setTimeout(()=>$("link").textContent="Скопировать ссылку на настройки",1600);}catch(e){ prompt("Ссылка:",location.href);} };
+  const probe=new File([new Blob()],"a.png",{type:"image/png"});
+  if(navigator.canShare && navigator.canShare({files:[probe]})) $("share").classList.remove("hide");
+}
+function blob(cb){ cv.toBlob(cb,"image/png"); }
+
+build(); bind(); sync(); render();
+</script>
+</body>
+</html>
